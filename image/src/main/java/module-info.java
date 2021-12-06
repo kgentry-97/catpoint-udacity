@@ -4,7 +4,7 @@ module image {
     requires software.amazon.awssdk.auth;
     requires software.amazon.awssdk.core;
     requires software.amazon.awssdk.regions;
-    requires slf4j.api;
+    requires org.slf4j;
 
     exports imageService;
 }
