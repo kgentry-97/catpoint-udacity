@@ -49,9 +49,13 @@
           <version>3.0.0-M5</version>
           <configuration>
             <argLine>
-              --add-opens  security/security.service=ALL-UNNAMED
+              --add-opens security/service=ALL-UNNAMED
             </argLine>
           </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.2.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
@@ -73,4 +77,14 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.5.0.0</version>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>
