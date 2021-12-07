@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
  * Unit test for simple App.
  */
 @ExtendWith({MockitoExtension.class})
-public class AppTest 
+public class SecurityServiceTest
 {
     private SecurityService securityService;
     private Sensor sensor;
@@ -114,8 +114,6 @@ public class AppTest
         verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
     }
 
-
-
     @Test
     @DisplayName("sensor is activated, while already active and the system is in pending state, change it to alarm state")
     public void alarmedArmed_sensorActive_pendingalarm_alarmstate(){
@@ -134,14 +132,6 @@ public class AppTest
     }
 
     @Test
-    @DisplayName("camera image does not contain a cat, change the status to no alarm as long as the sensors are not active")
-    public void imagenoCat_senornotactive_noalarm(){
-        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
-        securityService.processImage(mock(BufferedImage.class));
-        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.NO_ALARM);
-    }
-
-    @Test
     @DisplayName("camera image contains a cat while the system is armed-home, put the system into alarm status")
     public void imageCat_armed_alarm(){
         when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
@@ -150,6 +140,28 @@ public class AppTest
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
     }
 
+    @Test
+    @DisplayName("camera image does not contain a cat, change the status to no alarm as long as the sensors are not active")
+    public void imagenoCat_senornotactive_noalarm(){
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
+        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(true);
+        securityService.processImage(mock(BufferedImage.class));
+        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
+        securityService.processImage(mock(BufferedImage.class));
+        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.NO_ALARM);
+    }
+
+    @Test
+    @DisplayName("camera image does not contain a cat, status alarm  as the sensors are active")
+    public void imagenoCat_senoractive_alarm(){
+        sensor.setActive(true);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
+        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(true);
+        securityService.processImage(mock(BufferedImage.class));
+        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
+        securityService.processImage(mock(BufferedImage.class));
+        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
+    }
 
     @Test
     @DisplayName("system is disarmed, set the status to no alarm")
@@ -162,17 +174,22 @@ public class AppTest
     @DisplayName("system is armed, reset all sensors to inactive")
     @EnumSource(value = ArmingStatus.class, names = {"ARMED_AWAY", "ARMED_HOME"})
     public void armed_resetSesnorinactive(ArmingStatus armingStatus){
-        Set<Sensor> sensors = createSensors(2,false);
+        Set<Sensor> sensors = createSensors(2,true);
         when(securityRepository.getSensors()).thenReturn(sensors);
         securityService.setArmingStatus(armingStatus);
+        for(Sensor sensor: sensors){
+            securityService.changeSensorActivationStatus(sensor, false);
+        }
         securityService.getSensors().forEach(s -> assertFalse(s.getActive()));
     }
 
     @Test
     @DisplayName("system is armed-home while the camera shows a cat, set the alarm status to alarm")
     public void imagehasCat_armed_alarm(){
-        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
         when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(true);
+        securityService.processImage(mock(BufferedImage.class));
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
         securityService.processImage(mock(BufferedImage.class));
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
     }
@@ -188,11 +205,10 @@ public class AppTest
     }
 
     @Test
-    @DisplayName("add/remove listners")
+    @DisplayName("add/remove listeners")
     public void addRemoveListeners() {
         securityService.addStatusListener(statusListener);
         securityService.removeStatusListener(statusListener);
     }
-
 
 }
