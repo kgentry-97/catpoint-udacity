@@ -148,19 +148,20 @@ public class SecurityServiceTest
         securityService.processImage(mock(BufferedImage.class));
         when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
         securityService.processImage(mock(BufferedImage.class));
-        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.NO_ALARM);
+        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
     }
 
     @Test
     @DisplayName("camera image does not contain a cat, status alarm  as the sensors are active")
     public void imagenoCat_senoractive_alarm(){
         sensor.setActive(true);
-        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
-        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(true);
-        securityService.processImage(mock(BufferedImage.class));
+        Set<Sensor> sensors = new HashSet<>();
+        sensors.add(sensor);
+        when(securityService.getSensors()).thenReturn(sensors);
         when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
         securityService.processImage(mock(BufferedImage.class));
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
+        verify(securityRepository, never()).setAlarmStatus(AlarmStatus.NO_ALARM);
     }
 
     @Test
@@ -177,20 +178,19 @@ public class SecurityServiceTest
         Set<Sensor> sensors = createSensors(2,true);
         when(securityRepository.getSensors()).thenReturn(sensors);
         securityService.setArmingStatus(armingStatus);
-        for(Sensor sensor: sensors){
-            securityService.changeSensorActivationStatus(sensor, false);
-        }
         securityService.getSensors().forEach(s -> assertFalse(s.getActive()));
     }
 
     @Test
     @DisplayName("system is armed-home while the camera shows a cat, set the alarm status to alarm")
     public void imagehasCat_armed_alarm(){
-        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        Set<Sensor> sensors = new HashSet<>();
+        sensors.add(sensor);
         when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(true);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        when(securityService.getSensors()).thenReturn(sensors);
         securityService.processImage(mock(BufferedImage.class));
-        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
-        securityService.processImage(mock(BufferedImage.class));
+        securityService.setArmingStatus(ArmingStatus.ARMED_HOME);
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
     }
 
