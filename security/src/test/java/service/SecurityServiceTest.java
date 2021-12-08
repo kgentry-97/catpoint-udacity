@@ -160,7 +160,6 @@ public class SecurityServiceTest
         when(securityService.getSensors()).thenReturn(sensors);
         when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
         securityService.processImage(mock(BufferedImage.class));
-        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
         verify(securityRepository, never()).setAlarmStatus(AlarmStatus.NO_ALARM);
     }
 
@@ -177,6 +176,7 @@ public class SecurityServiceTest
     public void armed_resetSesnorinactive(ArmingStatus armingStatus){
         Set<Sensor> sensors = createSensors(2,true);
         when(securityRepository.getSensors()).thenReturn(sensors);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.NO_ALARM);
         securityService.setArmingStatus(armingStatus);
         securityService.getSensors().forEach(s -> assertFalse(s.getActive()));
     }
